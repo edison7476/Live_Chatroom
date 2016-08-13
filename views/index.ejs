@@ -1,0 +1,95 @@
+
+<html>
+<head>
+	<title></title>
+	<style type="text/css">
+		#chat{ height: 500px; border: 1 black solids }
+		#charwrap{ float: left; border: 1px black solid }
+		#userswrap{ float: right; vertical-align: top }
+	</style>
+	<script src="https://code.jquery.com/jquery-2.1.3.js"></script>
+	<script type="text/javascript" src="/socket.io/socket.io.js"></script>
+	<!-- The Express server is totally ready to handle that request, and as long as we have the socket.io module installed, we should be good! -->
+	<script>
+	$(document).ready(function (){
+
+		var socket = io.connect(); //
+		//By requiring the js file with the source of /socket.io/socket.io.js, we were giving an object called io, which has a method called connect().  Executing this method is what establishes the socket connection.
+		var $messageForm = $('#send_message');
+		var $messageBox = $('#message');
+		var $chat = $('#chat');
+		var data = {};
+		var name ='';
+		$('#nameForm').submit(function (e){
+			e.preventDefault();
+			socket.emit('new_user', $('#name').val(), function(data){
+				if(data){
+					name = $('#name').val();
+					console.log(name);
+					console.log(data)
+					$('#namewrap').hide();	
+					$('#contentwrap').show();
+				}
+				else{
+					console.log(data)
+					$('#nameError').html('This name has been used by someone else. Please choose another name')
+				}
+				$('#name').val('');
+			});
+		})
+		// Send request to our server when messageForm is submitted
+		$messageForm.submit( function (e){
+			e.preventDefault();
+			console.log('sending messageForm to the server')
+			//sending request to the server with the event name 'send_messgae'
+			data.name = name;
+			data.message = $messageBox.val()
+			socket.emit('send_message', data); 
+										// Need to create a socket function on the server side to handle this request
+										//Let's go to our server.js to create this
+			$messageBox.val(''); // clear messageBox after sending a message
+			//return false;
+		}); 
+		
+		// Handle the response from the server
+		socket.on('new_message', function (data){
+			console.log('client side ', data)
+			$chat.append(data.name +':'+ data.message + "<br>") // showing the reponse from the server i.e the message
+		});
+
+		socket.on('response_new_user', function (data){
+			console.log(data);
+			var name_str ='';
+			for(var i =0; i<data.length; i++){
+				name_str+= data[i] + '<br>'
+			}
+			$('#userswrap').html(name_str);
+		});
+
+	})
+	</script>
+
+</head>
+<body>	
+<h1>Hello welcome to the chat room!!</h1>
+<div id="namewrap">
+	<form id="nameForm">
+	<h2>Please enter your name</h2>
+	<input type="text" id="name">	
+	<input type="submit">
+	</form>
+	<div id="nameError"></div>
+</div>
+<div id="contentwrap">
+	<div id="chatwrap">
+		<div id ="chat"></div>
+		<form id="send_message">
+			<input type='text' size="30" id="message" cols="40" rows="5">
+			<input type="submit" id ="" value="Send">
+		</form>
+	</div>
+	<div id="userswrap"></div>
+</div>
+
+</body>
+</html>
